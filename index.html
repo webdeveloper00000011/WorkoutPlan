@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IRONPULSE AI | Smart Workout Plan & Exercise Recognition</title>
+  <!-- Google Fonts for Athletic Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@600;700&display=swap" rel="stylesheet">
+  
+  <!-- TensorFlow.js & Teachable Machine Image Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+  <style>
+    /* =========================================
+       DESIGN SYSTEM & VARIABLES (CONTRAST & UNITY)
+       ========================================= */
+    :root {
+      --bg-dark: #0d0f12;
+      --bg-card: #16191e;
+      --bg-card-hover: #1e2229;
+      --accent-neon: #ccff00; /* High-energy gym volt/lime */
+      --accent-neon-dim: rgba(204, 255, 0, 0.15);
+      --accent-orange: #ff5722;
+      --text-primary: #f4f6f8;
+      --text-secondary: #9ba3af;
+      --border-subtle: #272c35;
+      --radius-lg: 14px;
+      --radius-md: 8px;
+      --transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, .brand-logo {
+      font-family: 'Oswald', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* =========================================
+       NAVIGATION (ALIGNMENT & REPETITION)
+       ========================================= */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: rgba(13, 15, 18, 0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand-logo {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .brand-logo span {
+      color: var(--accent-neon);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transition: var(--transition);
+    }
+
+    .nav-links a:hover {
+      color: var(--accent-neon);
+    }
+
+    /* =========================================
+       HERO SECTION (VISUAL HIERARCHY & EMPHASIS)
+       ========================================= */
+    .hero {
+      position: relative;
+      padding: 5.5rem 1.5rem 4.5rem;
+      text-align: center;
+      background: 
+        radial-gradient(circle at 50% 0%, rgba(204, 255, 0, 0.12) 0%, transparent 60%),
+        linear-gradient(180deg, rgba(13, 15, 18, 0.75) 0%, var(--bg-dark) 100%),
+        url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1600&q=80') center/cover no-repeat;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--accent-neon-dim);
+      color: var(--accent-neon);
+      border: 1px solid rgba(204, 255, 0, 0.4);
+      padding: 0.35rem 0.9rem;
+      border-radius: 50px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 1.25rem;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4.2rem);
+      line-height: 1.08;
+      margin-bottom: 1rem;
+      max-width: 850px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero h1 span {
+      color: var(--accent-neon);
+    }
+
+    .hero p {
+      color: var(--text-secondary);
+      max-width: 640px;
+      margin: 0 auto 2rem;
+      font-size: 1.08rem;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      background-color: var(--accent-neon);
+      color: #0d0f12;
+      font-family: 'Oswald', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.9rem 2rem;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      text-decoration: none;
+      transition: var(--transition);
+      box-shadow: 0 0 20px rgba(204, 255, 0, 0.25);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px rgba(204, 255, 0, 0.45);
+      background-color: #d8ff33;
+    }
+
+    .btn-secondary {
+      background-color: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+      font-family: 'Oswald', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.85rem 1.5rem;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent-neon);
+      color: var(--accent-neon);
+    }
+
+    /* =========================================
+       LAYOUT CONTAINER & WHITE SPACE
+       ========================================= */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 4.5rem 1.5rem;
+    }
+
+    .section-header {
+      margin-bottom: 2.5rem;
+      border-left: 4px solid var(--accent-neon);
+      padding-left: 1rem;
+    }
+
+    .section-header h2 {
+      font-size: 2.1rem;
+      color: var(--text-primary);
+    }
+
+    .section-header p {
+      color: var(--text-secondary);
+      font-size: 0.98rem;
+      margin-top: 0.25rem;
+    }
+
+    /* =========================================
+       AI EXERCISE RECOGNITION STUDIO (BALANCE)
+       ========================================= */
+    .ai-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: stretch;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.75rem;
+      transition: var(--transition);
+    }
+
+    .webcam-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #090b0d;
+      border: 2px dashed var(--border-subtle);
+      border-radius: var(--radius-md);
+      min-height: 320px;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 1.25rem;
+    }
+
+    .webcam-box.active {
+      border: 2px solid var(--accent-neon);
+      box-shadow: 0 0 25px rgba(204, 255, 0, 0.15);
+    }
+
+    #webcam-container canvas {
+      width: 100%;
+      max-width: 360px;
+      height: auto;
+      border-radius: var(--radius-md);
+      display: block;
+    }
+
+    .placeholder-text {
+      text-align: center;
+      color: var(--text-secondary);
+      padding: 2rem;
+    }
+
+    .controls-row {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* Prediction Bars (Proximity & Clarity) */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 1.25rem;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #555;
+    }
+
+    .status-dot.live {
+      background: var(--accent-neon);
+      box-shadow: 0 0 10px var(--accent-neon);
+    }
+
+    .detected-banner {
+      background: var(--accent-neon-dim);
+      border: 1px solid rgba(204, 255, 0, 0.35);
+      border-radius: var(--radius-md);
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .detected-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: var(--accent-neon);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    .detected-value {
+      font-family: 'Oswald', sans-serif;
+      font-size: 1.65rem;
+      color: var(--text-primary);
+    }
+
+    .prediction-item {
+      margin-bottom: 1rem;
+    }
+
+    .prediction-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      background: #0d0f12;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #99cc00, var(--accent-neon));
+      border-radius: 999px;
+      transition: width 0.15s ease-out;
+    }
+
+    /* =========================================
+       DYNAMIC WORKOUT PLANNER
+       ========================================= */
+    .goal-tabs {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1.75rem;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+      padding: 0.65rem 1.25rem;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .tab-btn.active, .tab-btn:hover {
+      background: var(--accent-neon);
+      color: #0d0f12;
+      border-color: var(--accent-neon);
+    }
+
+    .workout-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .workout-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .workout-card:hover {
+      border-color: rgba(204, 255, 0, 0.5);
+      transform: translateY(-3px);
+    }
+
+    .day-tag {
+      color: var(--accent-neon);
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .workout-card h3 {
+      font-size: 1.35rem;
+      margin: 0.35rem 0 0.75rem;
+    }
+
+    .workout-card ul {
+      list-style: none;
+      color: var(--text-secondary);
+      font-size: 0.92rem;
+    }
+
+    .workout-card li {
+      padding: 0.4rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .workout-card li:last-child {
+      border-bottom: none;
+    }
+
+    /* =========================================
+       SIGNIFICANCE TO THE COMMUNITY (REQUIRED)
+       ========================================= */
+    .community-section {
+      background: #111419;
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .community-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .impact-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.75rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .impact-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: var(--accent-neon);
+    }
+
+    .impact-number {
+      font-family: 'Oswald', sans-serif;
+      font-size: 2rem;
+      color: var(--accent-neon);
+      line-height: 1;
+      margin-bottom: 0.75rem;
+    }
+
+    .impact-card h3 {
+      font-size: 1.25rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .impact-card p {
+      color: var(--text-secondary);
+      font-size: 0.93rem;
+    }
+
+    /* =========================================
+       FOOTER
+       ========================================= */
+    footer {
+      text-align: center;
+      padding: 2.5rem 1.5rem;
+      color: var(--text-secondary);
+      font-size: 0.88rem;
+    }
+
+    footer span {
+      color: var(--accent-neon);
+      font-weight: 600;
+    }
+
+    @media (max-width: 820px) {
+      .ai-grid {
+        grid-template-columns: 1fr;
+      }
+      .nav-links {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVIGATION BAR -->
+  <header>
+    <div class="nav-container">
+      <a href="#" class="brand-logo">IRON<span>PULSE</span> AI</a>
+      <ul class="nav-links">
+        <li><a href="#ai-scanner">AI Exercise Scanner</a></li>
+        <li><a href="#workout-plan">Workout Plans</a></li>
+        <li><a href="#community-impact">Community Impact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- HERO SECTION -->
+  <section class="hero">
+    <div class="hero-badge">Powered by TensorFlow.js & Teachable Machine</div>
+    <h1>TRAIN SMARTER WITH <span>AI EXERCISE</span> RECOGNITION</h1>
+    <p>Real-time computer vision posture tracking paired with structured gym routines—making safe, guided fitness accessible to everyone, anywhere.</p>
+    <a href="#ai-scanner" class="btn-primary">Launch AI Camera Trainer</a>
+  </section>
+
+  <!-- SECTION 1: LIVE AI EXERCISE RECOGNITION -->
+  <section id="ai-scanner" class="container">
+    <div class="section-header">
+      <h2>Live AI Exercise Recognition</h2>
+      <p>Activate your camera to automatically detect exercises and verify movement classification in real time.</p>
+    </div>
+
+    <div class="ai-grid">
+      <!-- Left Card: Webcam Feed -->
+      <div class="card">
+        <div class="webcam-box" id="webcam-box">
+          <div id="webcam-container"></div>
+          <div class="placeholder-text" id="webcam-placeholder">
+            <p><strong>Camera is currently off</strong></p>
+            <p style="font-size: 0.85rem; margin-top: 0.4rem;">Click "Start AI Camera" below and allow browser camera permissions.</p>
+          </div>
+        </div>
+        <div class="controls-row">
+          <button class="btn-primary" id="start-btn" onclick="initAI()">Start AI Camera</button>
+          <button class="btn-secondary" id="stop-btn" onclick="stopAI()" disabled>Stop Camera</button>
+        </div>
+      </div>
+
+      <!-- Right Card: Live Neural Network Confidence -->
+      <div class="card">
+        <div class="status-pill">
+          <span class="status-dot" id="status-dot"></span>
+          <span id="status-text">Model Ready: Awaiting Camera Input</span>
+        </div>
+
+        <div class="detected-banner">
+          <div>
+            <div class="detected-label">Top Detected Movement</div>
+            <div class="detected-value" id="top-exercise">—</div>
+          </div>
+          <div style="text-align: right;">
+            <div class="detected-label">Confidence</div>
+            <div class="detected-value" id="top-confidence">0%</div>
+          </div>
+        </div>
+
+        <div id="label-container">
+          <p style="color: var(--text-secondary); font-size: 0.9rem;">
+            Real-time class probabilities from your Teachable Machine model will appear here once started.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: STRUCTURED GYM WORKOUT PLANS -->
+  <section id="workout-plan" class="container" style="padding-top: 1rem;">
+    <div class="section-header">
+      <h2>Adaptive Gym Workout Plans</h2>
+      <p>Select your primary fitness goal to view a structured training split tailored to your routine.</p>
+    </div>
+
+    <div class="goal-tabs">
+      <button class="tab-btn active" onclick="renderPlan('strength', this)">Strength & Hypertrophy</button>
+      <button class="tab-btn" onclick="renderPlan('fatloss', this)">Fat Loss & Conditioning</button>
+      <button class="tab-btn" onclick="renderPlan('beginner', this)">Beginner Full-Body</button>
+    </div>
+
+    <div class="workout-grid" id="workout-grid">
+      <!-- Populated dynamically by JS -->
+    </div>
+  </section>
+
+  <!-- SECTION 3: SIGNIFICANCE TO THE COMMUNITY -->
+  <section id="community-impact" class="community-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Significance to the Community</h2>
+        <p>Bridging the gap between expensive personal training and accessible everyday public health.</p>
+      </div>
+
+      <div class="community-grid">
+        <div class="impact-card">
+          <div class="impact-number">01</div>
+          <h3>Free Virtual Coaching for All</h3>
+          <p>Personal trainers and commercial gym memberships are costly. By running directly in a web browser on any phone or laptop, this AI system gives students, workers, and low-income households free exercise guidance at home.</p>
+        </div>
+
+        <div class="impact-card">
+          <div class="impact-number">02</div>
+          <h3>Injury Prevention & Safer Form</h3>
+          <p>Improper exercise execution leads to joint strain and preventable injuries among beginners. Instant visual recognition encourages disciplined movement patterns and safer solo workouts without needing a spotter.</p>
+        </div>
+
+        <div class="impact-card">
+          <div class="impact-number">03</div>
+          <h3>Combating Sedentary Lifestyles</h3>
+          <p>Interactive AI feedback gamifies daily physical activity, helping schools, barangay wellness programs, and busy professionals stay consistent and reduce risks of lifestyle-related health conditions.</p>
+        </div>
+
+        <div class="impact-card">
+          <div class="impact-number">04</div>
+          <h3>Privacy-First Edge AI</h3>
+          <p>All video processing runs locally inside the user's browser via TensorFlow.js. No webcam footage is ever recorded or uploaded to external servers, protecting community members' privacy while building confidence.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <p><span>WorkoutPlan AI</span> — Built with Machine Learning & Web Technologies | Hosted on GitHub Pages</p>
+  </footer>
+
+  <!-- =========================================
+       TEACHABLE MACHINE & WORKOUT LOGIC
+       ========================================= -->
+  <script type="text/javascript">
+    // Your exact Teachable Machine Model URL
+    const MODEL_URL = "https://teachablemachine.withgoogle.com/models/-AN5iGwQr/";
+
+    let model, webcam, labelContainer, maxPredictions;
+    let isRunning = false;
+    let animationFrameId;
+
+    async function initAI() {
+      if (isRunning) return;
+
+      const startBtn = document.getElementById("start-btn");
+      const stopBtn = document.getElementById("stop-btn");
+      const statusText = document.getElementById("status-text");
+      const statusDot = document.getElementById("status-dot");
+
+      startBtn.disabled = true;
+      startBtn.innerText = "Loading AI Model...";
+      statusText.innerText = "Fetching Neural Network Weights...";
+
+      try {
+        const modelURL = MODEL_URL + "model.json";
+        const metadataURL = MODEL_URL + "metadata.json";
+
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+
+        // Setup webcam
+        const flip = true;
+        webcam = new tmImage.Webcam(360, 360, flip);
+        await webcam.setup();
+        await webcam.play();
+
+        isRunning = true;
+        document.getElementById("webcam-placeholder").style.display = "none";
+        document.getElementById("webcam-box").classList.add("active");
+
+        const webcamContainer = document.getElementById("webcam-container");
+        webcamContainer.innerHTML = "";
+        webcamContainer.appendChild(webcam.canvas);
+
+        // Build prediction progress bars
+        labelContainer = document.getElementById("label-container");
+        labelContainer.innerHTML = "";
+        for (let i = 0; i < maxPredictions; i++) {
+          const item = document.createElement("div");
+          item.className = "prediction-item";
+          item.innerHTML = `
+            <div class="prediction-meta">
+              <span class="class-name">Class ${i + 1}</span>
+              <span class="class-prob">0%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill"></div>
+            </div>
+          `;
+          labelContainer.appendChild(item);
+        }
+
+        statusDot.classList.add("live");
+        statusText.innerText = "AI Vision Active — Tracking Exercise";
+        startBtn.innerText = "Camera Running";
+        stopBtn.disabled = false;
+
+        window.requestAnimationFrame(loop);
+      } catch (err) {
+        console.error(err);
+        statusText.innerText = "Error: Please allow camera access and use HTTPS.";
+        startBtn.disabled = false;
+        startBtn.innerText = "Start AI Camera";
+      }
+    }
+
+    async function loop() {
+      if (!isRunning) return;
+      webcam.update();
+      await predict();
+      animationFrameId = window.requestAnimationFrame(loop);
+    }
+
+    async function predict() {
+      const prediction = await model.predict(webcam.canvas);
+      let highestProb = 0;
+      let bestClass = "—";
+
+      for (let i = 0; i < maxPredictions; i++) {
+        const probPercent = Math.round(prediction[i].probability * 100);
+        const className = prediction[i].className;
+
+        const row = labelContainer.childNodes[i];
+        row.querySelector(".class-name").innerText = className;
+        row.querySelector(".class-prob").innerText = probPercent + "%";
+        row.querySelector(".progress-fill").style.width = probPercent + "%";
+
+        if (prediction[i].probability > highestProb) {
+          highestProb = prediction[i].probability;
+          bestClass = className;
+        }
+      }
+
+      document.getElementById("top-exercise").innerText = bestClass;
+      document.getElementById("top-confidence").innerText = Math.round(highestProb * 100) + "%";
+    }
+
+    function stopAI() {
+      if (!isRunning) return;
+      isRunning = false;
+      window.cancelAnimationFrame(animationFrameId);
+      if (webcam) {
+        webcam.stop();
+      }
+      document.getElementById("webcam-container").innerHTML = "";
+      document.getElementById("webcam-placeholder").style.display = "block";
+      document.getElementById("webcam-box").classList.remove("active");
+      document.getElementById("status-dot").classList.remove("live");
+      document.getElementById("status-text").innerText = "Camera Stopped";
+      document.getElementById("start-btn").disabled = false;
+      document.getElementById("start-btn").innerText = "Start AI Camera";
+      document.getElementById("stop-btn").disabled = true;
+    }
+
+    // Dynamic Workout Plan Data
+    const workoutPlans = {
+      strength: [
+        { day: "Day 01 • Upper Push", title: "Chest, Shoulders & Triceps", exercises: ["Push-Ups / Bench Press — 4 sets × 10 reps", "Overhead Dumbbell Press — 3 sets × 12 reps", "Incline Dumbbell Flyes — 3 sets × 12 reps", "Tricep Dips — 3 sets × 15 reps"] },
+        { day: "Day 02 • Lower Power", title: "Quads, Hamstrings & Glutes", exercises: ["Bodyweight / Barbell Squats — 4 sets × 10 reps", "Walking Lunges — 3 sets × 12 reps/leg", "Romanian Deadlifts — 3 sets × 10 reps", "Standing Calf Raises — 4 sets × 15 reps"] },
+        { day: "Day 03 • Upper Pull", title: "Back, Rear Delts & Biceps", exercises: ["Pull-Ups / Lat Pulldowns — 4 sets × 8–10 reps", "Bent-Over Rows — 3 sets × 12 reps", "Bicep Curls — 3 sets × 12 reps", "Plank Core Hold — 3 sets × 45 sec"] }
+      ],
+      fatloss: [
+        { day: "Day 01 • HIIT Circuit", title: "Full-Body Metabolic Burn", exercises: ["Jumping Jacks — 4 rounds × 45 sec", "Squat Jumps — 4 rounds × 30 sec", "Mountain Climbers — 4 rounds × 40 sec", "Burpees — 4 rounds × 30 sec"] },
+        { day: "Day 02 • Core & Cardio", title: "Endurance & Midsection", exercises: ["High Knees — 4 rounds × 45 sec", "Push-Up to Shoulder Tap — 3 sets × 12 reps", "Bicycle Crunches — 3 sets × 20 reps", "Shadow Boxing — 3 rounds × 2 min"] },
+        { day: "Day 03 • Active Stamina", title: "Lower Body Conditioning", exercises: ["Reverse Lunges — 4 sets × 15 reps/leg", "Glute Bridges — 3 sets × 20 reps", "Wall Sit — 3 sets × 45 sec", "Brisk Jog / Jump Rope — 15 mins"] }
+      ],
+      beginner: [
+        { day: "Session A • Foundation", title: "Movement & Form Mastery", exercises: ["Wall or Knee Push-Ups — 3 sets × 10 reps", "Chair-Assisted Squats — 3 sets × 12 reps", "Standing Torso Twists — 3 sets × 20 reps", "Dead Bug Core Drill — 3 sets × 10 reps"] },
+        { day: "Session B • Stability", title: "Balance & Posture Control", exercises: ["Step-Ups — 3 sets × 10 reps/leg", "Superman Back Extensions — 3 sets × 12 reps", "Incline Push-Ups — 3 sets × 10 reps", "Forearm Plank — 3 sets × 25 sec"] },
+        { day: "Session C • Mobility", title: "Joint Health & Light Cardio", exercises: ["Marching in Place — 3 sets × 60 sec", "Bodyweight Good Mornings — 3 sets × 12 reps", "Arm Circles & Shoulder Stretch — 3 mins", "Cat-Cow Spine Mobility — 10 slow reps"] }
+      ]
+    };
+
+    function renderPlan(goalKey, btnElement) {
+      if (btnElement) {
+        document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+        btnElement.classList.add("active");
+      }
+      const grid = document.getElementById("workout-grid");
+      grid.innerHTML = workoutPlans[goalKey].map(item => `
+        <div class="workout-card">
+          <div>
+            <div class="day-tag">${item.day}</div>
+            <h3>${item.title}</h3>
+            <ul>
+              ${item.exercises.map(ex => `<li>${ex}</li>`).join("")}
+            </ul>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    // Load default workout plan on page load
+    renderPlan("strength");
+  </script>
+</body>
+</html>
